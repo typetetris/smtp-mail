@@ -263,6 +263,13 @@ sendMail host mail = do
   renderAndSend con mail
   closeSMTP con
 
+-- | Connect to an SMTP server, send a 'Mail', then disconnect.  Uses smtps with the default port (465).
+sendMailTLS :: HostName -> Mail -> IO ()
+sendMailTLS host mail = do
+  con <- connectSMTPS host
+  renderAndSend con mail
+  closeSMTP con
+
 -- | Connect to an SMTP server, send a 'Mail', then disconnect.
 sendMail' :: HostName -> PortNumber -> Mail -> IO ()
 sendMail' host port mail = do
