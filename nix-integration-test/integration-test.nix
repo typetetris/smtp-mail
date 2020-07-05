@@ -3,17 +3,7 @@ let
   nixpkgs-src = import ./nixpkgs-commit.nix;
 
   # Nixpkgs set with our smtp-mail.
-  nixpkgs = import nixpkgs-src {
-    config = {
-      packageOverrides = super: {
-        haskellPackages = super.haskellPackages.override {
-          overrides = self: super: {
-            smtp-mail = self.callCabal2nix "smtp-mail" ./. {};
-          };
-        };
-      };
-    };
-  };
+  nixpkgs = import ./nixpkgs.nix;
 
   # Certificates for ssl in tests.
   certs = import "${nixpkgs-src}/nixos/tests/common/acme/server/snakeoil-certs.nix";
@@ -50,21 +40,11 @@ in
       '';
 
       environment.systemPackages = let
-        sendTestMail = pkgs.writeScriptBin "send-testmail" ''
-        #!${pkgs.bash}/bin/bash
-          integration-test --plain
-        '';
-
-        sendTestMailSmtps = pkgs.writeScriptBin "send-testmail-smtps" ''
-        #!${pkgs.bash}/bin/bash
-          integration-test --tls
-        '';
-      in [ sendTestMail sendTestMailSmtps nixpkgs.haskellPackages.smtp-mail pkgs.openssl ];
+      in [ nixpkgs.haskellPackages.integration-test ];
     };
 
     testScript = ''
       machine.wait_for_unit("postfix.service")
-      machine.succeed("send-testmail")
-      machine.succeed("send-testmail-smtps")
+      machine.succeed("integration-test")
     '';
   }

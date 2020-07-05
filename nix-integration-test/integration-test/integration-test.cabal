@@ -18,8 +18,8 @@ executable integration-test
   build-depends: base >= 4.5 && < 5
                , smtp-mail
                , mime-mail
-               , network-bsd
-               , connection
+               , hspec
+               , hspec-expectations
 
   ghc-options: -fwarn-tabs
 

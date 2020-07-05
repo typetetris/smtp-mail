@@ -1,4 +1,4 @@
-import ./nixpkgs-commit.nix {
+import (import ./nixpkgs-commit.nix) {
   config = {
     packageOverrides = super: {
       haskellPackages = super.haskellPackages.override {
