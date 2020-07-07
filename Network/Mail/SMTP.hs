@@ -76,6 +76,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import Data.Text.Encoding
+import Debug.Trace
 
 data SMTPConnection = SMTPC !Conn.Connection ![ByteString]
 
@@ -245,7 +246,9 @@ sendCommand (SMTPC conn _) (DATA dat) = do
     cr = B8.pack "\r"
     dot = B8.pack "."
 
-sendCommand (SMTPC conn _) (AUTH LOGIN username password) = do
+sendCommand (SMTPC conn _) a@(AUTH LOGIN username password)
+  | trace (show a) False = undefined
+  | otherwise = do
     bsPutCrLf conn command
     _ <- parseResponse conn
     bsPutCrLf conn userB64
