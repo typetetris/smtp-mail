@@ -61,10 +61,26 @@ in
             imap.select()
             status, refs = imap.search(None, 'ALL')
             assert status == 'OK'
-            assert len(refs) == 1
-            status, msg = imap.fetch(refs[0], 'BODY[TEXT]')
+            assert len(refs[0].split()) == 3
+
+            status, all = imap.fetch(refs[0].split()[0], 'FULL')
             assert status == 'OK'
-            assert msg[0][1].strip() == b'Hello world!'
+            assert all[0].lower().find(b'bob') == -1
+
+            status, header = imap.fetch(refs[0].split()[0], 'BODY[HEADER]')
+            assert status == 'OK'
+            assert header[0][1].lower().find(b'bob') == -1
+
+            status, body = imap.fetch(refs[0].split()[0], 'BODY[TEXT]')
+            assert status == 'OK'
+            assert body[0][1].lower().find(b'bob') == -1
+
+          with imaplib.IMAP4('localhost') as imap:
+            imap.login('bob', 'foobar')
+            imap.select()
+            status, refs = imap.search(None, 'ALL')
+            assert status == 'OK'
+            assert len(refs[0].split()) == 3
         '';
       in [ nixpkgs.haskellPackages.integration-test testImap nixpkgs.python3];
     };
