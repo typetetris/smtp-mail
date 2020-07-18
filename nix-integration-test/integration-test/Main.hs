@@ -2,18 +2,19 @@
 module Main where
 
 import Network.Mail.SMTP hiding (simpleMail)
-import Network.Mail.Mime (simpleMail)
+import Network.Mail.Mime (simpleMail, mailBcc)
 import System.Environment as Env
 import Test.Hspec
 import Test.Hspec.Expectations
 
 from       = Address Nothing "integration-test-smtp-mail@acme.test"
 to         = Address (Just "alice") "alice@acme.test"
+bcc        = Address (Just "bob") "bob@acme.test"
 subject    = "Test Mail"
 body       = "Test Mail Body Part"
 html       = "<h1>This Test succeeded!</h1>"
 
-createMail = simpleMail to from subject body html []
+createMail = fmap (\m -> m { mailBcc = [ bcc ] }) (simpleMail to from subject body html []) 
 
 host = "acme.test"
 

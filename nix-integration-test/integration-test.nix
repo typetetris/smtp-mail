@@ -17,22 +17,29 @@ in
 
     machine = { pkgs, ... }: {
       imports = [ "${nixpkgs-src}/nixos/tests/common/user-account.nix" ];
-      services.postfix = {
-        enable = true;
-        enableSubmission = true;
-        enableSubmissions = true;
-        sslCACert = certs.ca.cert;
-        sslCert = certs."acme.test".cert;
-        sslKey = certs."acme.test".key;
-        submissionOptions = {
-          smtpd_sasl_auth_enable = "yes";
-          smtpd_client_restrictions = "permit";
-          milter_macro_daemon_name = "ORIGINATING";
+      services = {
+        postfix = {
+          enable = true;
+          enableSubmission = true;
+          enableSubmissions = true;
+          sslCACert = certs.ca.cert;
+          sslCert = certs."acme.test".cert;
+          sslKey = certs."acme.test".key;
+          submissionOptions = {
+            smtpd_sasl_auth_enable = "yes";
+            smtpd_client_restrictions = "permit";
+            milter_macro_daemon_name = "ORIGINATING";
+          };
+          submissionsOptions = {
+            smtpd_sasl_auth_enable = "yes";
+            smtpd_client_restrictions = "permit";
+            milter_macro_daemon_name = "ORIGINATING";
+          };
+          destination = [ "localhost" "acme.test" ];
         };
-        submissionsOptions = {
-          smtpd_sasl_auth_enable = "yes";
-          smtpd_client_restrictions = "permit";
-          milter_macro_daemon_name = "ORIGINATING";
+        dovecot2 = {
+          enable = true;
+          protocols = [ "imap" ];
         };
       };
 
@@ -45,11 +52,28 @@ in
       '';
 
       environment.systemPackages = let
-      in [ nixpkgs.haskellPackages.integration-test ];
+        testImap = pkgs.writeScriptBin "test-imap" ''
+          #!${nixpkgs.python3.interpreter}
+          import imaplib
+   
+          with imaplib.IMAP4('localhost') as imap:
+            imap.login('alice', 'foobar')
+            imap.select()
+            status, refs = imap.search(None, 'ALL')
+            assert status == 'OK'
+            assert len(refs) == 1
+            status, msg = imap.fetch(refs[0], 'BODY[TEXT]')
+            assert status == 'OK'
+            assert msg[0][1].strip() == b'Hello world!'
+        '';
+      in [ nixpkgs.haskellPackages.integration-test testImap nixpkgs.python3];
     };
 
     testScript = ''
       machine.wait_for_unit("postfix.service")
+      machine.wait_for_unit("dovecot2.service")
       machine.succeed("integration-test")
+      machine.wait_until_fails('[ "$(postqueue -p)" != "Mail queue is empty" ]')
+      machine.succeed("test-imap")
     '';
   }
